@@ -29,9 +29,7 @@ COPY . .
 # Install dependencies
 RUN composer install --no-dev --no-progress --prefer-dist
 
-# Generate key and optimize
-RUN php artisan key:generate --force
-RUN php artisan optimize:clear
+
 
 # Expose port
 EXPOSE 8000

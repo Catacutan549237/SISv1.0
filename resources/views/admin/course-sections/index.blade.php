@@ -3,17 +3,7 @@
 @section('title', 'Course Codes')
 
 @section('sidebar')
-<div class="nav-item"><a href="{{ route('admin.dashboard') }}" class="nav-link"><span class="nav-icon">📊</span><span>Dashboard</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.students') }}" class="nav-link"><span class="nav-icon">👥</span><span>Students</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.professors') }}" class="nav-link"><span class="nav-icon">👨‍🏫</span><span>Professors</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.departments') }}" class="nav-link"><span class="nav-icon">🏢</span><span>Departments</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.programs') }}" class="nav-link"><span class="nav-icon">🎓</span><span>Programs</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.courses') }}" class="nav-link"><span class="nav-icon">📚</span><span>Courses</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.course-sections') }}" class="nav-link active"><span class="nav-icon">📝</span><span>Course Codes</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.semesters') }}" class="nav-link"><span class="nav-icon">📅</span><span>Semesters</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.enrollments') }}" class="nav-link"><span class="nav-icon">✍️</span><span>Enrollments</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.payments') }}" class="nav-link"><span class="nav-icon">💳</span><span>Payments</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.announcements') }}" class="nav-link"><span class="nav-icon">📢</span><span>Announcements</span></a></div>
+@include('admin.partials.sidebar')
 @endsection
 
 @section('content')
@@ -33,6 +23,11 @@
     </div>
 </div>
 
+<div style="margin-bottom: 20px;">
+    <a href="{{ route('admin.course-sections') }}" class="btn {{ !request('archived') ? 'btn-primary' : 'btn-secondary' }}">Active</a>
+    <a href="{{ route('admin.course-sections', ['archived' => 1]) }}" class="btn {{ request('archived') ? 'btn-primary' : 'btn-secondary' }}">Archived</a>
+</div>
+
 
 @if ($errors->any())
     <div class="alert alert-danger" style="background: #fde8e8; color: #c53030; border: 1px solid #c53030; padding: 10px; border-radius: 4px; margin-bottom: 20px;">
@@ -44,6 +39,7 @@
     </div>
 @endif
 
+@if(!request('archived'))
 <div class="card" style="margin-bottom: 30px;">
     <h2 class="card-title">Add New Course Section</h2>
     <form method="POST" action="{{ route('admin.course-sections.store') }}">
@@ -99,6 +95,7 @@
         <button type="submit" class="btn btn-primary">Add Section</button>
     </form>
 </div>
+@endif
 
 <div class="table-container">
     <h2 class="card-title">All Course Codes</h2>
@@ -147,12 +144,20 @@
                                 <td>{{ $section->room ?? 'TBA' }}</td>
                                 <td><span class="badge badge-info">{{ $section->enrolled_count }}/{{ $section->max_students }}</span></td>
                                 <td>
-                                    <button onclick="editSection({{ $section->id }}, '{{ $section->course_id }}', '{{ $section->professor_id }}', '{{ $section->section_code }}', '{{ $section->max_students }}', '{{ $section->schedule }}', '{{ $section->room }}')" class="btn btn-primary btn-sm">Edit</button>
-                                    <form method="POST" action="{{ route('admin.course-sections.destroy', $section) }}" style="display: inline;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete?')">Delete</button>
-                                    </form>
+
+                                    @if(request('archived'))
+                                        <form method="POST" action="{{ route('admin.course-sections.restore', $section->id) }}" style="display: inline;">
+                                            @csrf
+                                            <button type="submit" class="btn btn-success btn-sm">Restore</button>
+                                        </form>
+                                    @else
+                                        <button onclick="editSection({{ $section->id }}, '{{ $section->course_id }}', '{{ $section->professor_id }}', '{{ $section->section_code }}', '{{ $section->max_students }}', '{{ $section->schedule }}', '{{ $section->room }}', {{ ($section->grades_visible ?? false) ? 'true' : 'false' }})" class="btn btn-primary btn-sm">Edit</button>
+                                        <form method="POST" action="{{ route('admin.course-sections.destroy', $section) }}" style="display: inline;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-secondary btn-sm" onclick="return confirm('Archive this section?')">Archive</button>
+                                        </form>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach
@@ -206,6 +211,14 @@
                 </div>
             </div>
             
+            <div class="form-group" style="margin-top: 10px;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="edit_grades_visible" name="grades_visible" value="1" style="width: 20px; height: 20px; cursor: pointer;">
+                    <span class="form-label" style="margin: 0;">Show Grades to Students</span>
+                </label>
+                <p style="font-size: 13px; color: #666; margin-top: 5px; margin-left: 30px;">Enable this to allow students to view their grades for this section</p>
+            </div>
+            
             <button type="submit" class="btn btn-primary">Update Section</button>
             <button type="button" onclick="closeEditModal()" class="btn btn-secondary">Cancel</button>
         </form>
@@ -232,13 +245,14 @@ function toggleGroup(id) {
     }
 }
 
-function editSection(id, courseId, professorId, sectionCode, maxStudents, schedule, room) {
+function editSection(id, courseId, professorId, sectionCode, maxStudents, schedule, room, gradesVisible) {
     document.getElementById('editForm').action = '/admin/course-sections/' + id;
     document.getElementById('edit_professor_id').value = professorId || '';
     document.getElementById('edit_section_code').value = sectionCode;
     document.getElementById('edit_max_students').value = maxStudents;
     document.getElementById('edit_schedule').value = schedule || '';
     document.getElementById('edit_room').value = room || '';
+    document.getElementById('edit_grades_visible').checked = gradesVisible;
     document.getElementById('editModal').style.display = 'flex';
 }
 

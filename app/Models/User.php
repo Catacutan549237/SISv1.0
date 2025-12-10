@@ -27,6 +27,8 @@ class User extends Authenticatable
         'year_level',
         'must_change_password',
         'temp_password',
+        'is_active',
+        'deactivation_reason',
     ];
 
     /**

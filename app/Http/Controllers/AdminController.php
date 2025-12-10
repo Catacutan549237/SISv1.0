@@ -11,6 +11,7 @@ use App\Models\CourseSection;
 use App\Models\Enrollment;
 use App\Models\Payment;
 use App\Models\Announcement;
+use App\Models\AssessmentFee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -74,8 +75,15 @@ class AdminController extends Controller
     public function professors(Request $request)
     {
         $search = $request->input('search');
+        $status = $request->input('status', 'active');
 
         $query = User::where('role', 'professor');
+
+        if ($status === 'active') {
+            $query->where('is_active', true);
+        } elseif ($status === 'deactivated') {
+            $query->where('is_active', false);
+        }
 
         if ($search) {
             $query->where(function($q) use ($search) {
@@ -88,7 +96,7 @@ class AdminController extends Controller
             ->orderBy('name')
             ->paginate(20);
         
-        return view('admin.professors.index', compact('professors', 'search'));
+        return view('admin.professors.index', compact('professors', 'search', 'status'));
     }
 
     public function storeProfessor(Request $request)
@@ -128,21 +136,36 @@ class AdminController extends Controller
         return redirect()->route('admin.professors')->with('success', 'Professor updated successfully');
     }
 
-    public function destroyProfessor(User $professor)
+    public function deactivateProfessor(Request $request, User $professor)
     {
         if ($professor->role !== 'professor') {
             abort(403, 'Invalid professor');
         }
 
-        // Check if professor has assigned sections
-        if ($professor->courseSections()->count() > 0) {
-            return redirect()->route('admin.professors')
-                ->with('error', 'Cannot delete professor with assigned course sections');
+        $request->validate([
+            'deactivation_reason' => 'required|string|max:500',
+        ]);
+
+        $professor->update([
+            'is_active' => false,
+            'deactivation_reason' => $request->deactivation_reason,
+        ]);
+        
+        return redirect()->route('admin.professors')->with('success', 'Professor deactivated successfully');
+    }
+
+    public function activateProfessor(User $professor)
+    {
+        if ($professor->role !== 'professor') {
+            abort(403, 'Invalid professor');
         }
 
-        $professor->delete();
-        
-        return redirect()->route('admin.professors')->with('success', 'Professor deleted successfully');
+        $professor->update([
+            'is_active' => true,
+            'deactivation_reason' => null,
+        ]);
+
+        return redirect()->route('admin.professors')->with('success', 'Professor activated successfully');
     }
 
     // Department Management
@@ -157,6 +180,10 @@ class AdminController extends Controller
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('code', 'like', "%{$search}%");
             });
+        }
+
+        if ($request->has('archived')) {
+            $query->onlyTrashed();
         }
 
         $departments = $query->get();
@@ -205,6 +232,10 @@ class AdminController extends Controller
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('code', 'like', "%{$search}%");
             });
+        }
+
+        if ($request->has('archived')) {
+            $query->onlyTrashed();
         }
 
         $programs = $query->get();
@@ -267,7 +298,10 @@ class AdminController extends Controller
             });
         }
 
-        $programsWithCourses = $programsQuery->with(['courses' => function($q) use ($search) {
+        $programsWithCourses = $programsQuery->with(['courses' => function($q) use ($search, $request) {
+            if ($request->has('archived')) {
+                $q->onlyTrashed();
+            }
             if ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('course_code', 'like', "%{$search}%");
@@ -276,6 +310,9 @@ class AdminController extends Controller
 
         // Also fetch courses that don't belong to any program
         $uncategorizedCoursesQuery = Course::doesntHave('programs');
+        if ($request->has('archived')) {
+            $uncategorizedCoursesQuery->onlyTrashed();
+        }
         if ($search) {
             $uncategorizedCoursesQuery->where(function($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
@@ -362,6 +399,10 @@ class AdminController extends Controller
             });
         }
 
+        if ($request->has('archived')) {
+            $query->onlyTrashed();
+        }
+
         $semesters = $query->get();
         return view('admin.semesters.index', compact('semesters', 'search'));
     }
@@ -408,6 +449,10 @@ class AdminController extends Controller
             });
         }
 
+        if ($request->has('archived')) {
+            $query->onlyTrashed();
+        }
+
         $sections = $query->get();
         $courses = Course::all();
         $professors = User::where('role', 'professor')->get();
@@ -439,7 +484,11 @@ class AdminController extends Controller
             'max_students' => 'required|integer|min:1',
             'schedule' => 'nullable|string',
             'room' => 'nullable|string',
+            'grades_visible' => 'nullable|boolean',
         ]);
+
+        // Handle checkbox - if not present, set to false
+        $validated['grades_visible'] = $request->has('grades_visible') ? true : false;
 
         $section->update($validated);
         return redirect()->route('admin.course-sections')->with('success', 'Course section updated successfully');
@@ -469,6 +518,10 @@ class AdminController extends Controller
                        ->orWhere('name', 'like', "%{$search}%");
                 });
             });
+        }
+
+        if ($request->has('archived')) {
+            $query->onlyTrashed();
         }
 
         $enrollments = $query->paginate(50);
@@ -572,6 +625,10 @@ class AdminController extends Controller
             });
         }
 
+        if ($request->has('archived')) {
+            $query->onlyTrashed();
+        }
+
         $announcements = $query->get();
         return view('admin.announcements.index', compact('announcements', 'search'));
     }
@@ -606,5 +663,188 @@ class AdminController extends Controller
     {
         $announcement->delete();
         return redirect()->route('admin.announcements')->with('success', 'Announcement deleted successfully');
+    }
+
+    public function destroyEnrollment(Enrollment $enrollment)
+    {
+        $enrollment->delete();
+        return redirect()->route('admin.enrollments')->with('success', 'Enrollment archived successfully');
+    }
+
+    public function dropEnrollment(Enrollment $enrollment)
+    {
+        $enrollment->update(['status' => 'dropped']);
+        
+        $this->recalculatePayment($enrollment->student_id, $enrollment->courseSection->semester_id);
+        
+        return redirect()->route('admin.enrollments')->with('success', 'Course dropped successfully');
+    }
+
+    public function undropEnrollment(Enrollment $enrollment)
+    {
+        // Restore to 'pending_payment' initially to require payment/verification
+        $enrollment->update(['status' => 'pending_payment']);
+        
+        $this->recalculatePayment($enrollment->student_id, $enrollment->courseSection->semester_id);
+        
+        // Check if student is fully paid after recalculation, if so, update to 'enrolled'
+        $payment = Payment::where('student_id', $enrollment->student_id)
+            ->where('semester_id', $enrollment->courseSection->semester_id)
+            ->first();
+            
+        if ($payment && $payment->balance <= 0 && $payment->total_amount > 0) {
+             $enrollment->update(['status' => 'enrolled']);
+        }
+        
+        return redirect()->route('admin.enrollments')->with('success', 'Course restoration successful');
+    }
+
+    private function recalculatePayment($studentId, $semesterId)
+    {
+        $student = User::find($studentId);
+        if (!$student) return;
+
+        $totalUnits = $student->getTotalEnrolledUnits($semesterId);
+        
+        $payment = Payment::where('student_id', $studentId)
+            ->where('semester_id', $semesterId)
+            ->first();
+            
+        if ($payment) {
+            // If no units enrolled (e.g. all dropped), assessment should be 0 based on recent logic
+            if ($totalUnits == 0) {
+                $payment->total_amount = 0;
+                $payment->balance = 0 - $payment->amount_paid; // Negative balance means refund needed? Or just 0 if not paid. 
+                // Actually balance = total - paid. If total is 0, balance = -paid.
+            } else {
+                // Calculate total amount using assessment fee structure matching StudentController
+                $perUnitFee = 640.00; // Base per unit fee
+                $perUnitTotal = $perUnitFee * $totalUnits;
+                
+                // Get all active miscellaneous assessment fees
+                $assessmentFees = AssessmentFee::where('is_active', true)
+                    ->whereNull('course') // Only miscellaneous fees
+                    ->sum('amount');
+                
+                $totalAmount = $perUnitTotal + $assessmentFees;
+                
+                $payment->total_amount = $totalAmount;
+                $payment->balance = $totalAmount - $payment->amount_paid;
+            }
+            
+            // Update status
+            if ($payment->balance <= 0 && $payment->total_amount > 0) {
+                $payment->status = 'paid';
+            } elseif ($payment->amount_paid > 0) {
+                $payment->status = 'partial';
+            } else {
+                $payment->status = 'pending';
+            }
+            
+            $payment->save();
+        }
+    }
+
+    // Restore methods
+    public function restoreDepartment($id)
+    {
+        Department::withTrashed()->findOrFail($id)->restore();
+        return redirect()->route('admin.departments')->with('success', 'Department restored successfully');
+    }
+
+    public function restoreProgram($id)
+    {
+        Program::withTrashed()->findOrFail($id)->restore();
+        return redirect()->route('admin.programs')->with('success', 'Program restored successfully');
+    }
+
+    public function restoreCourse($id)
+    {
+        Course::withTrashed()->findOrFail($id)->restore();
+        return redirect()->route('admin.courses')->with('success', 'Course restored successfully');
+    }
+
+    public function restoreSemester($id)
+    {
+        Semester::withTrashed()->findOrFail($id)->restore();
+        return redirect()->route('admin.semesters')->with('success', 'Semester restored successfully');
+    }
+
+    public function restoreCourseSection($id)
+    {
+        CourseSection::withTrashed()->findOrFail($id)->restore();
+        return redirect()->route('admin.course-sections')->with('success', 'Course section restored successfully');
+    }
+
+    public function restoreEnrollment($id)
+    {
+        Enrollment::withTrashed()->findOrFail($id)->restore();
+        return redirect()->route('admin.enrollments')->with('success', 'Enrollment restored successfully');
+    }
+
+    public function restoreAnnouncement($id)
+    {
+        Announcement::withTrashed()->findOrFail($id)->restore();
+        return redirect()->route('admin.announcements')->with('success', 'Announcement restored successfully');
+    }
+
+    // Assessment Fee Management
+    public function assessments(Request $request)
+    {
+        $search = $request->input('search');
+        
+        $query = AssessmentFee::orderBy('order');
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('charge_description', 'like', "%{$search}%")
+                  ->orWhere('course', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->has('archived')) {
+            $query->onlyTrashed();
+        }
+
+        $assessments = $query->get();
+        return view('admin.assessments.index', compact('assessments', 'search'));
+    }
+
+    public function storeAssessment(Request $request)
+    {
+        $validated = $request->validate([
+            'charge_description' => 'required|string|max:255',
+            'course' => 'nullable|string|max:255',
+            'amount' => 'required|numeric|min:0',
+            'order' => 'nullable|integer|min:0',
+        ]);
+
+        AssessmentFee::create($validated);
+        return redirect()->route('admin.assessments')->with('success', 'Assessment fee created successfully');
+    }
+
+    public function updateAssessment(Request $request, AssessmentFee $assessment)
+    {
+        $validated = $request->validate([
+            'charge_description' => 'required|string|max:255',
+            'course' => 'nullable|string|max:255',
+            'amount' => 'required|numeric|min:0',
+            'order' => 'nullable|integer|min:0',
+        ]);
+
+        $assessment->update($validated);
+        return redirect()->route('admin.assessments')->with('success', 'Assessment fee updated successfully');
+    }
+
+    public function destroyAssessment(AssessmentFee $assessment)
+    {
+        $assessment->delete();
+        return redirect()->route('admin.assessments')->with('success', 'Assessment fee deleted successfully');
+    }
+
+    public function restoreAssessment($id)
+    {
+        AssessmentFee::withTrashed()->findOrFail($id)->restore();
+        return redirect()->route('admin.assessments')->with('success', 'Assessment fee restored successfully');
     }
 }

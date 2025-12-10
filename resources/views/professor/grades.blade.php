@@ -38,7 +38,12 @@
     @csrf
     
     <div class="table-container">
-        <h2 class="card-title">Student Grades</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2 class="card-title" style="margin: 0;">Student Grades</h2>
+            <div class="alert alert-info" style="margin: 0; padding: 10px 16px; font-size: 13px;">
+                <strong>Grading Scale:</strong> 1.0 (Fail), 2.0 - 4.0 (Pass), 7.1 (No Permit), 7.2 (Incomplete)
+            </div>
+        </div>
         
         @if($enrollments->count() > 0)
             <table>
@@ -63,17 +68,21 @@
                                 @endif
                             </td>
                             <td>
-                                <input 
-                                    type="number" 
+                                <select 
                                     name="grades[{{ $enrollment->id }}]" 
-                                    class="form-input" 
-                                    value="{{ $enrollment->grade }}"
-                                    min="0"
-                                    max="100"
-                                    step="0.01"
-                                    placeholder="Enter grade (0-100)"
-                                    style="max-width: 150px;"
+                                    class="form-select" 
+                                    style="max-width: 180px; padding: 8px;"
                                 >
+                                    <option value="" {{ $enrollment->grade === null ? 'selected' : '' }}>Select Grade</option>
+                                    <option value="4.0" {{ $enrollment->grade == 4.0 ? 'selected' : '' }}>4.0 - High Distinction</option>
+                                    <option value="3.5" {{ $enrollment->grade == 3.5 ? 'selected' : '' }}>3.5 - Distinction</option>
+                                    <option value="3.0" {{ $enrollment->grade == 3.0 ? 'selected' : '' }}>3.0 - Very Good</option>
+                                    <option value="2.5" {{ $enrollment->grade == 2.5 ? 'selected' : '' }}>2.5 - Good</option>
+                                    <option value="2.0" {{ $enrollment->grade == 2.0 ? 'selected' : '' }}>2.0 - Average</option>
+                                    <option value="1.0" {{ $enrollment->grade == 1.0 ? 'selected' : '' }}>1.0 - Fail</option>
+                                    <option value="7.1" {{ $enrollment->grade == 7.1 ? 'selected' : '' }}>7.1 - No Permit</option>
+                                    <option value="7.2" {{ $enrollment->grade == 7.2 ? 'selected' : '' }}>7.2 - Incomplete</option>
+                                </select>
                             </td>
                         </tr>
                     @endforeach

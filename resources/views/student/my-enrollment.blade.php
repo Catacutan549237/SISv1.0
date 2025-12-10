@@ -22,6 +22,12 @@
     </a>
 </div>
 <div class="nav-item">
+    <a href="{{ route('student.assessments') }}" class="nav-link">
+        <span class="nav-icon">📋</span>
+        <span>Assessment</span>
+    </a>
+</div>
+<div class="nav-item">
     <a href="{{ route('student.payments') }}" class="nav-link">
         <span class="nav-icon">💳</span>
         <span>Online Payment</span>
@@ -60,7 +66,6 @@
                     <th>Room</th>
                     <th>Professor</th>
                     <th>Status</th>
-                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -75,21 +80,11 @@
                         <td>{{ $enrollment->courseSection->professor ? $enrollment->courseSection->professor->name : 'TBA' }}</td>
                         <td>
                             @if($enrollment->status === 'enrolled')
-                                <span class="badge badge-success">Enrolled</span>
+                                <span class="badge badge-success">Paid</span>
                             @elseif($enrollment->status === 'pending_payment')
                                 <span class="badge badge-warning">Pending Payment</span>
                             @else
                                 <span class="badge badge-error">Dropped</span>
-                            @endif
-                        </td>
-                        <td>
-                            @if($enrollment->status !== 'dropped')
-                                <form method="POST" action="{{ route('student.enrollment.drop', $enrollment) }}" style="display: inline;">
-                                    @csrf
-                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to drop this course?')">
-                                        Drop
-                                    </button>
-                                </form>
                             @endif
                         </td>
                     </tr>

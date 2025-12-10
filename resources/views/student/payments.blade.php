@@ -22,6 +22,12 @@
     </a>
 </div>
 <div class="nav-item">
+    <a href="{{ route('student.assessments') }}" class="nav-link">
+        <span class="nav-icon">📋</span>
+        <span>Assessment</span>
+    </a>
+</div>
+<div class="nav-item">
     <a href="{{ route('student.payments') }}" class="nav-link active">
         <span class="nav-icon">💳</span>
         <span>Online Payment</span>

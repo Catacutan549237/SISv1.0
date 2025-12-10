@@ -22,6 +22,12 @@
     </a>
 </div>
 <div class="nav-item">
+    <a href="{{ route('student.assessments') }}" class="nav-link">
+        <span class="nav-icon">📋</span>
+        <span>Assessment</span>
+    </a>
+</div>
+<div class="nav-item">
     <a href="{{ route('student.payments') }}" class="nav-link">
         <span class="nav-icon">💳</span>
         <span>Online Payment</span>
@@ -64,19 +70,24 @@
                     @foreach($semesterEnrollments as $enrollment)
                         @php
                             $units = $enrollment->courseSection->course->units;
-                            $grade = $enrollment->grade ?? 0;
+                            // If grades are not visible, show 0.0. Otherwise show actual grade or 0.0 if null
+                            $gradesVisible = $enrollment->courseSection->grades_visible ?? false;
+                            $actualGrade = $enrollment->grade ?? 0.0;
+                            $displayGrade = $gradesVisible ? $actualGrade : 0.0;
                             $totalUnits += $units;
-                            $totalGradePoints += ($grade * $units);
+                            $totalGradePoints += ($displayGrade * $units);
                         @endphp
                         <tr>
                             <td><strong>{{ $enrollment->courseSection->course->course_code }}</strong></td>
                             <td>{{ $enrollment->courseSection->course->name }}</td>
                             <td>{{ $units }}</td>
-                            <td><strong>{{ number_format($grade, 2) }}</strong></td>
+                            <td><strong>{{ number_format($displayGrade, 1) }}</strong></td>
                             <td>
-                                @if($grade >= 75)
+                                @if(!$gradesVisible)
+                                    <span class="badge badge-warning">Pending</span>
+                                @elseif($displayGrade >= 75)
                                     <span class="badge badge-success">Passed</span>
-                                @elseif($grade > 0)
+                                @elseif($displayGrade > 0)
                                     <span class="badge badge-error">Failed</span>
                                 @else
                                     <span class="badge badge-warning">No Grade</span>
@@ -89,7 +100,7 @@
                         <td>{{ $totalUnits }} units</td>
                         <td colspan="2">
                             @if($totalUnits > 0)
-                                {{ number_format($totalGradePoints / $totalUnits, 2) }}
+                                {{ number_format($totalGradePoints / $totalUnits, 1) }}
                             @else
                                 N/A
                             @endif

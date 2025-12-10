@@ -3,17 +3,7 @@
 @section('title', 'Departments')
 
 @section('sidebar')
-<div class="nav-item"><a href="{{ route('admin.dashboard') }}" class="nav-link"><span class="nav-icon">📊</span><span>Dashboard</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.students') }}" class="nav-link"><span class="nav-icon">👥</span><span>Students</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.professors') }}" class="nav-link"><span class="nav-icon">👨‍🏫</span><span>Professors</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.departments') }}" class="nav-link active"><span class="nav-icon">🏢</span><span>Departments</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.programs') }}" class="nav-link"><span class="nav-icon">🎓</span><span>Programs</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.courses') }}" class="nav-link"><span class="nav-icon">📚</span><span>Courses</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.course-sections') }}" class="nav-link"><span class="nav-icon">📝</span><span>Course Codes</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.semesters') }}" class="nav-link"><span class="nav-icon">📅</span><span>Semesters</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.enrollments') }}" class="nav-link"><span class="nav-icon">✍️</span><span>Enrollments</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.payments') }}" class="nav-link"><span class="nav-icon">💳</span><span>Payments</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.announcements') }}" class="nav-link"><span class="nav-icon">📢</span><span>Announcements</span></a></div>
+@include('admin.partials.sidebar')
 @endsection
 
 @section('content')
@@ -33,6 +23,11 @@
     </div>
 </div>
 
+<div style="margin-bottom: 20px;">
+    <a href="{{ route('admin.departments') }}" class="btn {{ !request('archived') ? 'btn-primary' : 'btn-secondary' }}">Active</a>
+    <a href="{{ route('admin.departments', ['archived' => 1]) }}" class="btn {{ request('archived') ? 'btn-primary' : 'btn-secondary' }}">Archived</a>
+</div>
+
 
 @if ($errors->any())
     <div class="alert alert-danger" style="background: #fde8e8; color: #c53030; border: 1px solid #c53030; padding: 10px; border-radius: 4px; margin-bottom: 20px;">
@@ -45,6 +40,7 @@
 @endif
 
 <!-- Add Department Form -->
+@if(!request('archived'))
 <div class="card" style="margin-bottom: 30px;">
     <h2 class="card-title">Add New Department</h2>
     
@@ -71,6 +67,7 @@
         <button type="submit" class="btn btn-primary">Add Department</button>
     </form>
 </div>
+@endif
 
 <!-- Departments List -->
 <div class="table-container">
@@ -95,12 +92,20 @@
                         <td>{{ $department->description ?? 'N/A' }}</td>
                         <td><span class="badge badge-info">{{ $department->programs_count }} programs</span></td>
                         <td>
-                            <button onclick="editDepartment({{ $department->id }}, '{{ $department->name }}', '{{ $department->code }}', '{{ $department->description }}')" class="btn btn-primary btn-sm">Edit</button>
-                            <form method="POST" action="{{ route('admin.departments.destroy', $department) }}" style="display: inline;">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this department?')">Delete</button>
-                            </form>
+
+                            @if(request('archived'))
+                                <form method="POST" action="{{ route('admin.departments.restore', $department->id) }}" style="display: inline;">
+                                    @csrf
+                                    <button type="submit" class="btn btn-success btn-sm">Restore</button>
+                                </form>
+                            @else
+                                <button onclick="editDepartment({{ $department->id }}, '{{ $department->name }}', '{{ $department->code }}', '{{ $department->description }}')" class="btn btn-primary btn-sm">Edit</button>
+                                <form method="POST" action="{{ route('admin.departments.destroy', $department) }}" style="display: inline;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-secondary btn-sm" onclick="return confirm('Archive this department?')">Archive</button>
+                                </form>
+                            @endif
                         </td>
                     </tr>
                 @endforeach

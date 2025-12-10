@@ -74,35 +74,46 @@
             
             @if($section->enrollments->count() > 0)
                 <div style="margin-top: 16px;">
-                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px;">Enrolled Students</h3>
-                    <table style="width: 100%;">
-                        <thead>
-                            <tr>
-                                <th style="text-align: left; padding: 8px; background: var(--cream);">Student ID</th>
-                                <th style="text-align: left; padding: 8px; background: var(--cream);">Name</th>
-                                <th style="text-align: left; padding: 8px; background: var(--cream);">Status</th>
-                                <th style="text-align: left; padding: 8px; background: var(--cream);">Grade</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($section->enrollments as $enrollment)
+                    <button 
+                        type="button" 
+                        onclick="toggleStudentList('section-{{ $section->id }}')" 
+                        class="btn btn-secondary btn-sm"
+                        style="margin-bottom: 12px;"
+                    >
+                        <span id="toggle-icon-section-{{ $section->id }}">▶</span>
+                        Show Enrolled Students ({{ $section->enrollments->count() }})
+                    </button>
+                    
+                    <div id="student-list-section-{{ $section->id }}" style="display: none;">
+                        <table style="width: 100%;">
+                            <thead>
                                 <tr>
-                                    <td style="padding: 8px;">{{ $enrollment->student->student_id }}</td>
-                                    <td style="padding: 8px;">{{ $enrollment->student->name }}</td>
-                                    <td style="padding: 8px;">
-                                        @if($enrollment->status === 'enrolled')
-                                            <span class="badge badge-success">Enrolled</span>
-                                        @else
-                                            <span class="badge badge-warning">Pending</span>
-                                        @endif
-                                    </td>
-                                    <td style="padding: 8px;">
-                                        {{ $enrollment->grade ? number_format($enrollment->grade, 2) : 'No grade' }}
-                                    </td>
+                                    <th style="text-align: left; padding: 8px; background: var(--cream);">Student ID</th>
+                                    <th style="text-align: left; padding: 8px; background: var(--cream);">Name</th>
+                                    <th style="text-align: left; padding: 8px; background: var(--cream);">Status</th>
+                                    <th style="text-align: left; padding: 8px; background: var(--cream);">Grade</th>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @foreach($section->enrollments as $enrollment)
+                                    <tr>
+                                        <td style="padding: 8px;">{{ $enrollment->student->student_id }}</td>
+                                        <td style="padding: 8px;">{{ $enrollment->student->name }}</td>
+                                        <td style="padding: 8px;">
+                                            @if($enrollment->status === 'enrolled')
+                                                <span class="badge badge-success">Enrolled</span>
+                                            @else
+                                                <span class="badge badge-warning">Pending Payment</span>
+                                            @endif
+                                        </td>
+                                        <td style="padding: 8px;">
+                                            {{ $enrollment->grade ? number_format($enrollment->grade, 1) : 'No grade' }}
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             @endif
         </div>
@@ -116,4 +127,25 @@
         @endif
     </div>
 @endif
+@endsection
+
+@section('scripts')
+<script>
+function toggleStudentList(sectionId) {
+    const listElement = document.getElementById('student-list-' + sectionId);
+    const iconElement = document.getElementById('toggle-icon-' + sectionId);
+    const buttonElement = iconElement.parentElement;
+    
+    if (listElement.style.display === 'none') {
+        listElement.style.display = 'block';
+        iconElement.textContent = '▼';
+        buttonElement.innerHTML = iconElement.outerHTML + ' Hide Enrolled Students';
+    } else {
+        listElement.style.display = 'none';
+        iconElement.textContent = '▶';
+        const count = listElement.querySelector('tbody').children.length;
+        buttonElement.innerHTML = iconElement.outerHTML + ' Show Enrolled Students (' + count + ')';
+    }
+}
+</script>
 @endsection

@@ -3,17 +3,7 @@
 @section('title', 'Programs')
 
 @section('sidebar')
-<div class="nav-item"><a href="{{ route('admin.dashboard') }}" class="nav-link"><span class="nav-icon">📊</span><span>Dashboard</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.students') }}" class="nav-link"><span class="nav-icon">👥</span><span>Students</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.professors') }}" class="nav-link"><span class="nav-icon">👨‍🏫</span><span>Professors</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.departments') }}" class="nav-link"><span class="nav-icon">🏢</span><span>Departments</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.programs') }}" class="nav-link active"><span class="nav-icon">🎓</span><span>Programs</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.courses') }}" class="nav-link"><span class="nav-icon">📚</span><span>Courses</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.course-sections') }}" class="nav-link"><span class="nav-icon">📝</span><span>Course Codes</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.semesters') }}" class="nav-link"><span class="nav-icon">📅</span><span>Semesters</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.enrollments') }}" class="nav-link"><span class="nav-icon">✍️</span><span>Enrollments</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.payments') }}" class="nav-link"><span class="nav-icon">💳</span><span>Payments</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.announcements') }}" class="nav-link"><span class="nav-icon">📢</span><span>Announcements</span></a></div>
+@include('admin.partials.sidebar')
 @endsection
 
 @section('content')
@@ -33,6 +23,11 @@
     </div>
 </div>
 
+<div style="margin-bottom: 20px;">
+    <a href="{{ route('admin.programs') }}" class="btn {{ !request('archived') ? 'btn-primary' : 'btn-secondary' }}">Active</a>
+    <a href="{{ route('admin.programs', ['archived' => 1]) }}" class="btn {{ request('archived') ? 'btn-primary' : 'btn-secondary' }}">Archived</a>
+</div>
+
 
 @if ($errors->any())
     <div class="alert alert-danger" style="background: #fde8e8; color: #c53030; border: 1px solid #c53030; padding: 10px; border-radius: 4px; margin-bottom: 20px;">
@@ -45,6 +40,7 @@
 @endif
 
 <!-- Add Program Form -->
+@if(!request('archived'))
 <div class="card" style="margin-bottom: 30px;">
     <h2 class="card-title">Add New Program</h2>
     
@@ -93,6 +89,7 @@
         <button type="submit" class="btn btn-primary">Add Program</button>
     </form>
 </div>
+@endif
 
 <!-- Programs List -->
 <div class="table-container">
@@ -119,12 +116,20 @@
                         <td><span class="badge badge-info">{{ $program->min_units }}</span></td>
                         <td><span class="badge badge-warning">{{ $program->max_units }}</span></td>
                         <td>
-                            <button onclick="editProgram({{ $program }})" class="btn btn-primary btn-sm">Edit</button>
-                            <form method="POST" action="{{ route('admin.programs.destroy', $program) }}" style="display: inline;">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this program?')">Delete</button>
-                            </form>
+
+                            @if(request('archived'))
+                                <form method="POST" action="{{ route('admin.programs.restore', $program->id) }}" style="display: inline;">
+                                    @csrf
+                                    <button type="submit" class="btn btn-success btn-sm">Restore</button>
+                                </form>
+                            @else
+                                <button onclick="editProgram({{ $program }})" class="btn btn-primary btn-sm">Edit</button>
+                                <form method="POST" action="{{ route('admin.programs.destroy', $program) }}" style="display: inline;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-secondary btn-sm" onclick="return confirm('Archive this program?')">Archive</button>
+                                </form>
+                            @endif
                         </td>
                     </tr>
                 @endforeach

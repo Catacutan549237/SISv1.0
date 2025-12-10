@@ -22,6 +22,12 @@
     </a>
 </div>
 <div class="nav-item">
+    <a href="{{ route('student.assessments') }}" class="nav-link">
+        <span class="nav-icon">📋</span>
+        <span>Assessment</span>
+    </a>
+</div>
+<div class="nav-item">
     <a href="{{ route('student.payments') }}" class="nav-link active">
         <span class="nav-icon">💳</span>
         <span>Online Payment</span>
@@ -57,28 +63,41 @@
     </div>
 </div>
 
-<!-- Enrolled Courses -->
+<!-- Assessment Breakdown -->
 <div class="table-container" style="margin-bottom: 30px;">
-    <h2 class="card-title">Enrolled Courses</h2>
+    <h2 class="card-title">Breakdown of Fees</h2>
     
     <table>
         <thead>
             <tr>
-                <th>Course Code</th>
-                <th>Course Name</th>
-                <th>Units</th>
-                <th>Amount</th>
+                <th>Charge Description</th>
+                <th style="text-align: right;">Amount</th>
             </tr>
         </thead>
         <tbody>
-            @foreach($enrollments as $enrollment)
+            <!-- Per Unit Fee -->
+            <tr style="background: #f7fafc;">
+                <td><strong>Tuition Fee ({{ number_format($perUnitFee, 2) }} X {{ number_format($totalUnits, 1) }} units)</strong></td>
+                <td style="text-align: right;"><strong>₱{{ number_format($perUnitTotal, 2) }}</strong></td>
+            </tr>
+            
+            <!-- Miscellaneous Fees -->
+            @foreach($assessmentFees as $fee)
                 <tr>
-                    <td><strong>{{ $enrollment->courseSection->course->course_code }}</strong></td>
-                    <td>{{ $enrollment->courseSection->course->name }}</td>
-                    <td>{{ $enrollment->courseSection->course->units }}</td>
-                    <td>₱{{ number_format($enrollment->courseSection->course->units * 3850, 2) }}</td>
+                    <td>{{ $fee->charge_description }}</td>
+                    <td style="text-align: right;">₱{{ number_format($fee->amount, 2) }}</td>
                 </tr>
             @endforeach
+            
+            <!-- Total Row -->
+            <tr style="background: #e6f4ea; font-weight: bold; font-size: 1.1em;">
+                <td style="text-align: right; padding-right: 20px;">
+                    <strong>TOTAL ASSESSMENT:</strong>
+                </td>
+                <td style="text-align: right;">
+                    <strong>₱{{ number_format($payment->total_amount, 2) }}</strong>
+                </td>
+            </tr>
         </tbody>
     </table>
 </div>
@@ -89,7 +108,7 @@
     <h2 class="card-title">Make a Payment</h2>
     
     <div class="alert alert-info">
-        <strong>Note:</strong> This is a placeholder for online payment integration. In a production system, this would integrate with a payment gateway like PayMongo, PayPal, or Stripe.
+        <strong>Note:</strong> This is a placeholder for online payment integration, this does not have a payment gateway.
     </div>
     
     <form method="POST" action="{{ route('student.payments.process', $payment) }}">
@@ -115,9 +134,7 @@
             <select id="payment_method" name="payment_method" class="form-input" required>
                 <option value="">Select payment method</option>
                 <option value="online">Online Payment</option>
-                <option value="cash">Cash</option>
-                <option value="check">Check</option>
-                <option value="bank_transfer">Bank Transfer</option>
+                <option value="card">Credit/Debit Card</option>
             </select>
         </div>
         

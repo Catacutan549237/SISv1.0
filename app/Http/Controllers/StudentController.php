@@ -8,6 +8,7 @@ use App\Models\Semester;
 use App\Models\Payment;
 use App\Models\Announcement;
 use App\Models\Program;
+use App\Models\AssessmentFee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -218,9 +219,16 @@ class StudentController extends Controller
                 'semester_id' => $currentSemester->id,
             ]);
             
-            // Calculate total amount (1,500 PHP per unit)
-            $pricePerUnit = 1500;
-            $totalAmount = $totalUnits * $pricePerUnit;
+            // Calculate total amount using assessment fee structure
+            $perUnitFee = 640.00; // Base per unit fee
+            $perUnitTotal = $perUnitFee * $totalUnits;
+            
+            // Get all active miscellaneous assessment fees
+            $assessmentFees = AssessmentFee::where('is_active', true)
+                ->whereNull('course') // Only miscellaneous fees
+                ->sum('amount');
+            
+            $totalAmount = $perUnitTotal + $assessmentFees;
             
             $payment->total_amount = $totalAmount;
             $payment->balance = $totalAmount - ($payment->amount_paid ?? 0);
@@ -296,9 +304,32 @@ class StudentController extends Controller
                 $query->where('semester_id', $payment->semester_id);
             })
             ->with('courseSection.course')
+            // Only include active enrollments for unit calculation if consistent with assessment logic
+            ->whereIn('status', ['enrolled', 'pending_payment'])
+            ->get();
+            
+        // Calculate assessment details
+        $totalUnits = $enrollments->sum(function($enrollment) {
+            return $enrollment->courseSection->course->units;
+        });
+        
+        $perUnitFee = 640.00;
+        $perUnitTotal = $perUnitFee * $totalUnits;
+        
+        // Get misc assessment fees
+        $assessmentFees = AssessmentFee::where('is_active', true)
+            ->whereNull('course')
+            ->orderBy('order')
             ->get();
 
-        return view('student.payment-details', compact('payment', 'enrollments'));
+        return view('student.payment-details', compact(
+            'payment', 
+            'enrollments',
+            'totalUnits',
+            'perUnitFee',
+            'perUnitTotal',
+            'assessmentFees'
+        ));
     }
 
     public function processPayment(Request $request, Payment $payment)
@@ -351,9 +382,11 @@ class StudentController extends Controller
     {
         $student = auth()->user();
         
+        // Get all enrollments, not filtered by grades_visible
+        // The view will handle showing 0.0 for courses where grades aren't visible
         $enrollments = $student->enrollments()
             ->with(['courseSection.course', 'courseSection.semester'])
-            ->whereNotNull('grade')
+            ->whereIn('status', ['enrolled', 'pending_payment'])
             ->orderBy('created_at', 'desc')
             ->get()
             ->groupBy(function($enrollment) {
@@ -361,5 +394,67 @@ class StudentController extends Controller
             });
 
         return view('student.grades', compact('enrollments'));
+    }
+
+    public function assessments()
+    {
+        $student = auth()->user();
+        $currentSemester = Semester::current();
+        
+        $totalUnits = 0;
+        $perUnitFee = 640.00; // Base per unit fee
+        
+        if ($currentSemester) {
+            $totalUnits = $student->getTotalEnrolledUnits($currentSemester->id);
+        }
+        
+        // Get all active assessment fees
+        $assessmentFees = AssessmentFee::where('is_active', true)
+            ->orderBy('order')
+            ->get();
+        
+        // Calculate per unit fee total
+        $perUnitTotal = $perUnitFee * $totalUnits;
+        
+        // Calculate total assessment
+        $totalAssessment = $perUnitTotal + $assessmentFees->sum('amount');
+        
+        return view('student.assessments', compact(
+            'student',
+            'currentSemester',
+            'totalUnits',
+            'perUnitFee',
+            'perUnitTotal',
+            'assessmentFees',
+            'totalAssessment'
+        ));
+    }
+
+    public function showChangePassword()
+    {
+        return view('student.change-password');
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $validated = $request->validate([
+            'current_password' => 'required',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $student = auth()->user();
+
+        // Verify current password
+        if (!password_verify($validated['current_password'], $student->password)) {
+            return back()->with('error', 'Current password is incorrect');
+        }
+
+        // Update password
+        $student->update([
+            'password' => bcrypt($validated['password']),
+        ]);
+
+        return redirect()->route('student.dashboard')
+            ->with('success', 'Password changed successfully!');
     }
 }

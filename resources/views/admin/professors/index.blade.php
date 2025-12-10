@@ -3,17 +3,7 @@
 @section('title', 'Professors')
 
 @section('sidebar')
-<div class="nav-item"><a href="{{ route('admin.dashboard') }}" class="nav-link"><span class="nav-icon">📊</span><span>Dashboard</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.students') }}" class="nav-link"><span class="nav-icon">👥</span><span>Students</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.professors') }}" class="nav-link active"><span class="nav-icon">👨‍🏫</span><span>Professors</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.departments') }}" class="nav-link"><span class="nav-icon">🏢</span><span>Departments</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.programs') }}" class="nav-link"><span class="nav-icon">🎓</span><span>Programs</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.courses') }}" class="nav-link"><span class="nav-icon">📚</span><span>Courses</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.course-sections') }}" class="nav-link"><span class="nav-icon">📝</span><span>Course Codes</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.semesters') }}" class="nav-link"><span class="nav-icon">📅</span><span>Semesters</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.enrollments') }}" class="nav-link"><span class="nav-icon">✍️</span><span>Enrollments</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.payments') }}" class="nav-link"><span class="nav-icon">💳</span><span>Payments</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.announcements') }}" class="nav-link"><span class="nav-icon">📢</span><span>Announcements</span></a></div>
+@include('admin.partials.sidebar')
 @endsection
 
 @section('content')
@@ -31,6 +21,11 @@
             @endif
         </form>
     </div>
+</div>
+
+<div style="margin-bottom: 20px;">
+    <a href="{{ route('admin.professors', ['status' => 'active']) }}" class="btn {{ request('status', 'active') == 'active' ? 'btn-primary' : 'btn-secondary' }}">Active</a>
+    <a href="{{ route('admin.professors', ['status' => 'deactivated']) }}" class="btn {{ request('status') == 'deactivated' ? 'btn-primary' : 'btn-secondary' }}">Deactivated</a>
 </div>
 
 
@@ -112,11 +107,12 @@
                                 <button onclick="showTempPassword('{{ $professor->name }}', '{{ $professor->temp_password }}')" class="btn btn-info btn-sm">View Temp Password</button>
                             @endif
                             
-                            @if($professor->course_sections_count == 0)
-                                <form method="POST" action="{{ route('admin.professors.destroy', $professor) }}" style="display: inline;">
+                            @if($professor->is_active)
+                                <button onclick="deactivateProfessor({{ $professor->id }}, '{{ $professor->name }}')" class="btn btn-danger btn-sm">Deactivate</button>
+                            @else
+                                <form method="POST" action="{{ route('admin.professors.activate', $professor) }}" style="display: inline;">
                                     @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete this professor?')">Delete</button>
+                                    <button type="submit" class="btn btn-success btn-sm">Activate</button>
                                 </form>
                             @endif
                         </td>
@@ -175,6 +171,29 @@
         <button type="button" onclick="closeTempPasswordModal()" class="btn btn-primary">Close</button>
     </div>
 </div>
+
+<!-- Deactivate Modal -->
+<div id="deactivateModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="card" style="max-width: 500px; width: 90%;">
+        <h2 class="card-title">Deactivate Professor</h2>
+        
+        <p>Are you sure you want to deactivate <strong id="deactivate_professor_name"></strong>?</p>
+        
+        <form id="deactivateForm" method="POST">
+            @csrf
+            
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="deactivation_reason" class="form-label">Reason for Deactivation</label>
+                <textarea id="deactivation_reason" name="deactivation_reason" class="form-input" rows="4" required placeholder="Please provide a reason..."></textarea>
+            </div>
+            
+            <div style="margin-top: 20px; text-align: right;">
+                <button type="button" onclick="closeDeactivateModal()" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-danger">Deactivate</button>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection
 
 @section('scripts')
@@ -198,6 +217,16 @@ function showTempPassword(name, password) {
 
 function closeTempPasswordModal() {
     document.getElementById('tempPasswordModal').style.display = 'none';
+}
+
+function deactivateProfessor(id, name) {
+    document.getElementById('deactivateForm').action = '/admin/professors/' + id + '/deactivate';
+    document.getElementById('deactivate_professor_name').textContent = name;
+    document.getElementById('deactivateModal').style.display = 'flex';
+}
+
+function closeDeactivateModal() {
+    document.getElementById('deactivateModal').style.display = 'none';
 }
 </script>
 @endsection

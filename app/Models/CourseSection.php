@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CourseSection extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'course_id',
@@ -17,6 +18,11 @@ class CourseSection extends Model
         'max_students',
         'schedule',
         'room',
+        'grades_visible',
+    ];
+
+    protected $casts = [
+        'grades_visible' => 'boolean',
     ];
 
     public function course()

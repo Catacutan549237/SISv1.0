@@ -29,7 +29,9 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, var(--forest-green) 0%, var(--sage-green) 100%);
+            /* background: linear-gradient(135deg, var(--forest-green) 0%, var(--sage-green) 100%); */
+            background: url('/images/bg.jpg') no-repeat center center fixed;
+            background-size: cover;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -235,5 +237,6 @@
 </head>
 <body>
     @yield('content')
+    @yield('scripts')
 </body>
 </html>

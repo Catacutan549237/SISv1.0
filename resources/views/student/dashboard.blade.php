@@ -22,6 +22,12 @@
     </a>
 </div>
 <div class="nav-item">
+    <a href="{{ route('student.assessments') }}" class="nav-link">
+        <span class="nav-icon">📋</span>
+        <span>Assessment</span>
+    </a>
+</div>
+<div class="nav-item">
     <a href="{{ route('student.payments') }}" class="nav-link">
         <span class="nav-icon">💳</span>
         <span>Online Payment</span>
@@ -50,21 +56,33 @@
 
 <!-- Stats Cards -->
 <div class="card-grid">
+    @php
+        $totalExams = 8;
+        $totalAssessment = $payment ? $payment->total_amount : 0;
+        $totalPaid = $payment ? $payment->amount_paid : 0;
+        $perExam = $totalAssessment > 0 ? $totalAssessment / $totalExams : 0;
+        $examsPaid = $perExam > 0 ? $totalPaid / $perExam : 0;
+    @endphp
+    
     <div class="card stat-card" style="border-left-color: var(--success-green);">
-        <div class="stat-label">Amount Paid</div>
-        <div class="stat-value">₱{{ $payment ? number_format($payment->amount_paid, 2) : '0.00' }}</div>
+        <div class="stat-label">Exams Paid</div>
+        <div class="stat-value">{{ number_format($examsPaid, 2) }}</div>
     </div>
-    <div class="card stat-card warning">
-        <div class="stat-label">Total Assessment</div>
-        <div class="stat-value">₱{{ $payment ? number_format($payment->total_amount, 2) : '0.00' }}</div>
+    <div class="card stat-card" style="border-left-color: var(--success-green);">
+        <div class="stat-label">Total Paid</div>
+        <div class="stat-value">₱{{ number_format($totalPaid, 2) }}</div>
     </div>
     <div class="card stat-card error">
         <div class="stat-label">Current Balance</div>
         <div class="stat-value">₱{{ $payment ? number_format($payment->balance, 2) : '0.00' }}</div>
     </div>
+    <div class="card stat-card warning">
+        <div class="stat-label">Total Assessment</div>
+        <div class="stat-value">₱{{ number_format($totalAssessment, 2) }}</div>
+    </div>
     <div class="card stat-card info">
-        <div class="stat-label">Price Per Unit</div>
-        <div class="stat-value">₱1,500.00</div>
+        <div class="stat-label">Per Exam</div>
+        <div class="stat-value">₱{{ number_format($perExam, 2) }}</div>
     </div>
 </div>
 
@@ -109,7 +127,7 @@
                         <td>{{ $enrollment->courseSection->room ?? 'TBA' }}</td>
                         <td>
                             @if($enrollment->status === 'enrolled')
-                                <span class="badge badge-success">Enrolled</span>
+                                <span class="badge badge-success">Paid</span>
                             @elseif($enrollment->status === 'pending_payment')
                                 <span class="badge badge-warning">Pending Payment</span>
                             @else

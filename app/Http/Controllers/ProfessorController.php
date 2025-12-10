@@ -136,8 +136,8 @@ class ProfessorController extends Controller
             }
         }
 
-        return redirect()->route('professor.grades', $section)
-            ->with('success', 'Grades updated successfully');
+        return redirect()->route('professor.courses')
+            ->with('success', 'Grades saved successfully');
     }
 
     public function showChangePassword()

@@ -3,17 +3,7 @@
 @section('title', 'Announcements')
 
 @section('sidebar')
-<div class="nav-item"><a href="{{ route('admin.dashboard') }}" class="nav-link"><span class="nav-icon">📊</span><span>Dashboard</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.students') }}" class="nav-link"><span class="nav-icon">👥</span><span>Students</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.professors') }}" class="nav-link"><span class="nav-icon">👨‍🏫</span><span>Professors</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.departments') }}" class="nav-link"><span class="nav-icon">🏢</span><span>Departments</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.programs') }}" class="nav-link"><span class="nav-icon">🎓</span><span>Programs</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.courses') }}" class="nav-link"><span class="nav-icon">📚</span><span>Courses</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.course-sections') }}" class="nav-link"><span class="nav-icon">📝</span><span>Course Codes</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.semesters') }}" class="nav-link"><span class="nav-icon">📅</span><span>Semesters</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.enrollments') }}" class="nav-link"><span class="nav-icon">✍️</span><span>Enrollments</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.payments') }}" class="nav-link"><span class="nav-icon">💳</span><span>Payments</span></a></div>
-<div class="nav-item"><a href="{{ route('admin.announcements') }}" class="nav-link active"><span class="nav-icon">📢</span><span>Announcements</span></a></div>
+@include('admin.partials.sidebar')
 @endsection
 
 @section('content')
@@ -33,6 +23,12 @@
     </div>
 </div>
 
+<div style="margin-bottom: 20px;">
+    <a href="{{ route('admin.announcements') }}" class="btn {{ !request('archived') ? 'btn-primary' : 'btn-secondary' }}">Active</a>
+    <a href="{{ route('admin.announcements', ['archived' => 1]) }}" class="btn {{ request('archived') ? 'btn-primary' : 'btn-secondary' }}">Archived</a>
+</div>
+
+@if(!request('archived'))
 <div class="card" style="margin-bottom: 30px;">
     <h2 class="card-title">Create New Announcement</h2>
     <form method="POST" action="{{ route('admin.announcements.store') }}">
@@ -64,6 +60,7 @@
         <button type="submit" class="btn btn-primary">Create Announcement</button>
     </form>
 </div>
+@endif
 
 <div class="table-container">
     <h2 class="card-title">All Announcements ({{ $announcements->count() }})</h2>
@@ -102,11 +99,18 @@
                         </td>
                         <td>{{ $announcement->created_at->format('M d, Y') }}</td>
                         <td>
-                            <form method="POST" action="{{ route('admin.announcements.destroy', $announcement) }}" style="display: inline;">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Delete?')">Delete</button>
-                            </form>
+                            @if(request('archived'))
+                                <form method="POST" action="{{ route('admin.announcements.restore', $announcement->id) }}" style="display: inline;">
+                                    @csrf
+                                    <button type="submit" class="btn btn-success btn-sm">Restore</button>
+                                </form>
+                            @else
+                                <form method="POST" action="{{ route('admin.announcements.destroy', $announcement) }}" style="display: inline;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-secondary btn-sm" onclick="return confirm('Archive this announcement?')">Archive</button>
+                                </form>
+                            @endif
                         </td>
                     </tr>
                 @endforeach

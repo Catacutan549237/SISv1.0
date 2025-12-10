@@ -4,15 +4,39 @@
 
 @section('sidebar')
 <div class="nav-item">
-    <a href="{{ route('professor.dashboard') }}" class="nav-link">
+    <a href="{{ route('student.dashboard') }}" class="nav-link">
         <span class="nav-icon">📊</span>
         <span>Dashboard</span>
     </a>
 </div>
 <div class="nav-item">
-    <a href="{{ route('professor.courses') }}" class="nav-link">
+    <a href="{{ route('student.enrollment') }}" class="nav-link">
+        <span class="nav-icon">📝</span>
+        <span>Enroll Course</span>
+    </a>
+</div>
+<div class="nav-item">
+    <a href="{{ route('student.my-enrollment') }}" class="nav-link">
         <span class="nav-icon">📚</span>
-        <span>My Courses</span>
+        <span>Class Schedule</span>
+    </a>
+</div>
+<div class="nav-item">
+    <a href="{{ route('student.assessments') }}" class="nav-link">
+        <span class="nav-icon">📋</span>
+        <span>Assessment</span>
+    </a>
+</div>
+<div class="nav-item">
+    <a href="{{ route('student.payments') }}" class="nav-link">
+        <span class="nav-icon">💳</span>
+        <span>Online Payment</span>
+    </a>
+</div>
+<div class="nav-item">
+    <a href="{{ route('student.grades') }}" class="nav-link">
+        <span class="nav-icon">🎓</span>
+        <span>Evaluation</span>
     </a>
 </div>
 @endsection
@@ -23,16 +47,10 @@
     <p class="page-subtitle">Update your account password</p>
 </div>
 
-@if(auth()->user()->must_change_password)
-<div class="alert alert-warning" style="max-width: 600px;">
-    <strong>Security Notice:</strong> You are using a temporary password. Please create a new secure password to continue.
-</div>
-@endif
-
 <div class="card" style="max-width: 600px;">
     <h2 class="card-title">Change Your Password</h2>
     
-    <form method="POST" action="{{ route('professor.password.update') }}">
+    <form method="POST" action="{{ route('student.password.update') }}">
         @csrf
         @method('PUT')
         
@@ -80,7 +98,7 @@
 
         <div style="margin-top: 24px;">
             <button type="submit" class="btn btn-primary">Update Password</button>
-            <a href="{{ route('professor.dashboard') }}" class="btn btn-secondary">Cancel</a>
+            <a href="{{ route('student.dashboard') }}" class="btn btn-secondary">Cancel</a>
         </div>
     </form>
 </div>

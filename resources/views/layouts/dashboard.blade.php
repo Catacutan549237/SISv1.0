@@ -83,9 +83,15 @@
             font-weight: 700;
         }
 
+
         .user-info {
             font-size: 13px;
             opacity: 0.9;
+        }
+
+        .user-info:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+            opacity: 1;
         }
 
         .user-name {
@@ -98,8 +104,52 @@
             text-transform: capitalize;
         }
 
+
         .sidebar-nav {
             padding: 20px 0;
+        }
+
+        .nav-category {
+            margin-bottom: 8px;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .category-header:hover {
+            color: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .category-icon {
+            font-size: 10px;
+            transition: transform 0.3s ease;
+        }
+
+        .category-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .category-items {
+            max-height: 1000px;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .category-items.collapsed {
+            max-height: 0;
         }
 
         .nav-item {
@@ -110,7 +160,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px 20px;
+            padding: 12px 20px 12px 32px;
             color: var(--white);
             text-decoration: none;
             transition: all 0.3s ease;
@@ -412,10 +462,17 @@
                     <div class="logo-icon">SIS</div>
                     <div class="logo-text">Student Portal</div>
                 </div>
-                <div class="user-info">
+                @php
+                    $changePasswordRoute = match(auth()->user()->role) {
+                        'professor' => route('professor.password.change'),
+                        'student' => route('student.password.change'),
+                        default => '#'
+                    };
+                @endphp
+                <a href="{{ $changePasswordRoute }}" class="user-info" style="text-decoration: none; color: inherit; display: block; padding: 12px; margin: -12px; border-radius: 8px; transition: background 0.3s;">
                     <div class="user-name">{{ auth()->user()->name }}</div>
                     <div class="user-role">{{ auth()->user()->role }}</div>
-                </div>
+                </a>
             </div>
             
             <nav class="sidebar-nav">
@@ -445,6 +502,38 @@
             @yield('content')
         </main>
     </div>
+
+    <script>
+        // Handle collapsible sidebar categories
+        document.addEventListener('DOMContentLoaded', function() {
+            const categoryHeaders = document.querySelectorAll('.category-header');
+            
+            categoryHeaders.forEach(header => {
+                header.addEventListener('click', function() {
+                    const categoryItems = this.nextElementSibling;
+                    const icon = this.querySelector('.category-icon');
+                    
+                    categoryItems.classList.toggle('collapsed');
+                    icon.classList.toggle('collapsed');
+                    
+                    // Save state to localStorage
+                    const categoryName = this.textContent.trim().replace('▼', '').replace('▶', '').trim();
+                    const isCollapsed = categoryItems.classList.contains('collapsed');
+                    localStorage.setItem('sidebar-' + categoryName, isCollapsed);
+                });
+                
+                // Restore state from localStorage
+                const categoryName = header.textContent.trim().replace('▼', '').replace('▶', '').trim();
+                const isCollapsed = localStorage.getItem('sidebar-' + categoryName) === 'true';
+                if (isCollapsed) {
+                    const categoryItems = header.nextElementSibling;
+                    const icon = header.querySelector('.category-icon');
+                    categoryItems.classList.add('collapsed');
+                    icon.classList.add('collapsed');
+                }
+            });
+        });
+    </script>
 
     @yield('scripts')
 </body>

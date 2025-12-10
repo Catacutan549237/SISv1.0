@@ -850,5 +850,8 @@ class DatabaseSeeder extends Seeder
             'target_audience' => 'professors',
             'is_active' => true,
         ]);
+
+        // Seed Assessment Fees
+        $this->call(AssessmentFeeSeeder::class);
     }
 }

@@ -1,6 +1,6 @@
 # Must match PHP 8.2+
 FROM php:8.2-apache  
-
+composer update --with-all-dependencies
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \

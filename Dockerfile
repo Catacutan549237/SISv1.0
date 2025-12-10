@@ -1,7 +1,7 @@
-# Use PHP with built-in web server
-FROM php:8.2-apache
+# Use PHP with built-in web server (simpler)
+FROM php:8.2-cli
 
-# Install system dependencies
+# Install dependencies
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -19,33 +19,23 @@ RUN apt-get update && apt-get install -y \
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Enable Apache mod_rewrite
-RUN a2enmod rewrite
-
-# Set working directory
 WORKDIR /var/www/html
 
-# Copy only composer files first (optimize caching)
+# Copy composer files
 COPY composer.json composer.lock ./
 
-# Install dependencies (FIX: Add --no-scripts flag if having issues)
-RUN composer install --no-dev --no-interaction --optimize-autoloader --no-scripts
+# Install dependencies
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Copy the rest of the application
+# Copy application
 COPY . .
-
-# Generate autoload files
-RUN composer dump-autoload --optimize
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Copy Apache configuration for Render
-COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
-
-# Expose port 10000 (Render's default for web services)
+# Expose port 10000 for Render
 EXPOSE 10000
 
-# Start Apache
-CMD ["apache2-foreground"]
+# Start Laravel with built-in server
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=10000"]

@@ -29,8 +29,6 @@ COPY . .
 # Install dependencies
 RUN composer install --no-dev --no-progress --prefer-dist
 
-
-
 # Expose port
 EXPOSE 8000
 

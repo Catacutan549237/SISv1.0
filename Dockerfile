@@ -1,4 +1,6 @@
-FROM php:8.2-apache  # Must match PHP 8.2+
+# Must match PHP 8.2+
+FROM php:8.2-apache  
+
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \

@@ -33,4 +33,4 @@ RUN composer install --no-dev --no-progress --prefer-dist
 EXPOSE 8000
 
 # Start server
-CMD php -S 0.0.0.0:8000 -t public
+CMD php -S 0.0.0.0:$PORT -t public

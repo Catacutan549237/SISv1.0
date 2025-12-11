@@ -15,8 +15,6 @@ Route::get('/', function () {
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
-    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/register', [AuthController::class, 'register']);
     
     // Forgot Password
     Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
@@ -80,6 +78,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     
     // Students
     Route::get('/students', [AdminController::class, 'students'])->name('students');
+    Route::post('/students', [AdminController::class, 'storeStudent'])->name('students.store');
+    Route::put('/students/{student}', [AdminController::class, 'updateStudent'])->name('students.update');
+    Route::post('/students/{student}/deactivate', [AdminController::class, 'deactivateStudent'])->name('students.deactivate');
+    Route::post('/students/{student}/activate', [AdminController::class, 'activateStudent'])->name('students.activate');
     
     // Professors
     Route::get('/professors', [AdminController::class, 'professors'])->name('professors');
@@ -118,6 +120,10 @@ Route::middleware(['auth', 'role:professor'])->prefix('professor')->name('profes
 
 // Student routes
 Route::middleware(['auth', 'role:student'])->prefix('student')->name('student.')->group(function () {
+    // Password change routes (accessible even with must_change_password flag)
+    Route::get('/change-password', [StudentController::class, 'showChangePassword'])->name('password.change');
+    Route::put('/change-password', [StudentController::class, 'updatePassword'])->name('password.update');
+    
     Route::get('/dashboard', [StudentController::class, 'dashboard'])->name('dashboard');
     Route::get('/enrollment', [StudentController::class, 'enrollmentForm'])->name('enrollment');
     Route::post('/enrollment', [StudentController::class, 'enroll'])->name('enrollment.store');

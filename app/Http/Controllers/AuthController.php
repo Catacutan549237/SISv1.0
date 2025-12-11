@@ -21,14 +21,6 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    public function showRegister()
-    {
-        if (Auth::check()) {
-            return $this->redirectBasedOnRole(Auth::user());
-        }
-        return view('auth.register');
-    }
-
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -44,30 +36,6 @@ class AuthController extends Controller
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
         ])->onlyInput('email');
-    }
-
-    public function register(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'program_id' => 'nullable|exists:programs,id',
-        ]);
-
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role' => 'student',
-            'program_id' => $validated['program_id'] ?? null,
-            'student_id' => $this->generateStudentId(),
-            'year_level' => '1st Year',
-        ]);
-
-        Auth::login($user);
-
-        return redirect()->route('student.dashboard');
     }
 
     public function logout(Request $request)
@@ -86,24 +54,6 @@ class AuthController extends Controller
             'student' => redirect()->route('student.dashboard'),
             default => redirect()->route('login'),
         };
-    }
-
-    private function generateStudentId()
-    {
-        $year = date('Y');
-        $lastStudent = User::where('role', 'student')
-            ->where('student_id', 'like', $year . '%')
-            ->orderBy('student_id', 'desc')
-            ->first();
-
-        if ($lastStudent) {
-            $lastNumber = intval(substr($lastStudent->student_id, -5));
-            $newNumber = str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
-        } else {
-            $newNumber = '00001';
-        }
-
-        return $year . '-' . $newNumber;
     }
 
     // Password Reset Methods

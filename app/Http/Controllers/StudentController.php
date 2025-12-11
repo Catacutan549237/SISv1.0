@@ -17,6 +17,13 @@ class StudentController extends Controller
     public function dashboard()
     {
         $student = auth()->user();
+        
+        // Redirect to password change if required
+        if ($student->must_change_password) {
+            return redirect()->route('student.password.change')
+                ->with('warning', 'You must change your temporary password before continuing.');
+        }
+        
         $currentSemester = Semester::current();
         
         $enrolledCourses = collect();
@@ -449,9 +456,11 @@ class StudentController extends Controller
             return back()->with('error', 'Current password is incorrect');
         }
 
-        // Update password
+        // Update password and remove must_change_password flag
         $student->update([
             'password' => bcrypt($validated['password']),
+            'must_change_password' => false,
+            'temp_password' => null, // Clear temp password
         ]);
 
         return redirect()->route('student.dashboard')

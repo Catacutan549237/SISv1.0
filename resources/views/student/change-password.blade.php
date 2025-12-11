@@ -47,6 +47,12 @@
     <p class="page-subtitle">Update your account password</p>
 </div>
 
+@if(auth()->user()->must_change_password)
+<div class="alert alert-warning" style="max-width: 600px;">
+    <strong>Security Notice:</strong> You are using a temporary password. Please create a new secure password to continue.
+</div>
+@endif
+
 <div class="card" style="max-width: 600px;">
     <h2 class="card-title">Change Your Password</h2>
     
@@ -98,7 +104,9 @@
 
         <div style="margin-top: 24px;">
             <button type="submit" class="btn btn-primary">Update Password</button>
-            <a href="{{ route('student.dashboard') }}" class="btn btn-secondary">Cancel</a>
+            @if(!auth()->user()->must_change_password)
+                <a href="{{ route('student.dashboard') }}" class="btn btn-secondary">Cancel</a>
+            @endif
         </div>
     </form>
 </div>

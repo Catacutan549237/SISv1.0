@@ -595,8 +595,15 @@ class AdminController extends Controller
     public function students(Request $request)
     {
         $search = $request->input('search');
+        $status = $request->input('status', 'active');
 
-        $query = User::where('role', 'student')->with('program');
+        $query = User::where('role', 'student');
+
+        if ($status === 'active') {
+            $query->where('is_active', true);
+        } elseif ($status === 'deactivated') {
+            $query->where('is_active', false);
+        }
 
         if ($search) {
             $query->where(function($q) use ($search) {
@@ -606,9 +613,108 @@ class AdminController extends Controller
             });
         }
 
-        $students = $query->paginate(50);
+        $students = $query->with('program')
+            ->orderBy('name')
+            ->paginate(20);
         
-        return view('admin.students.index', compact('students', 'search'));
+        $programs = \App\Models\Program::all();
+        
+        return view('admin.students.index', compact('students', 'search', 'status', 'programs'));
+    }
+
+    public function storeStudent(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'program_id' => 'nullable|exists:programs,id',
+            'year_level' => 'required|string',
+        ]);
+
+        // Generate random temporary password
+        $tempPassword = 'temp' . rand(1000, 9999);
+        
+        // Generate student ID
+        $studentId = $this->generateStudentId();
+        
+        $validated['password'] = bcrypt($tempPassword);
+        $validated['role'] = 'student';
+        $validated['must_change_password'] = true;
+        $validated['temp_password'] = $tempPassword; // Store for admin viewing
+        $validated['student_id'] = $studentId;
+
+        $student = User::create($validated);
+        
+        return redirect()->route('admin.students')
+            ->with('success', "Student added successfully! Student ID: <strong>{$studentId}</strong>, Temporary password: <strong>{$tempPassword}</strong> (You can view this later in the Actions menu)");
+    }
+
+    public function updateStudent(Request $request, User $student)
+    {
+        if ($student->role !== 'student') {
+            abort(403, 'Invalid student');
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $student->id,
+            'program_id' => 'nullable|exists:programs,id',
+            'year_level' => 'required|string',
+        ]);
+
+        $student->update($validated);
+        
+        return redirect()->route('admin.students')->with('success', 'Student updated successfully');
+    }
+
+    public function deactivateStudent(Request $request, User $student)
+    {
+        if ($student->role !== 'student') {
+            abort(403, 'Invalid student');
+        }
+
+        $request->validate([
+            'deactivation_reason' => 'required|string|max:500',
+        ]);
+
+        $student->update([
+            'is_active' => false,
+            'deactivation_reason' => $request->deactivation_reason,
+        ]);
+        
+        return redirect()->route('admin.students')->with('success', 'Student deactivated successfully');
+    }
+
+    public function activateStudent(User $student)
+    {
+        if ($student->role !== 'student') {
+            abort(403, 'Invalid student');
+        }
+
+        $student->update([
+            'is_active' => true,
+            'deactivation_reason' => null,
+        ]);
+
+        return redirect()->route('admin.students')->with('success', 'Student activated successfully');
+    }
+
+    private function generateStudentId()
+    {
+        $year = date('Y');
+        $lastStudent = User::where('role', 'student')
+            ->where('student_id', 'like', $year . '%')
+            ->orderBy('student_id', 'desc')
+            ->first();
+
+        if ($lastStudent) {
+            $lastNumber = intval(substr($lastStudent->student_id, -5));
+            $newNumber = str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
+        } else {
+            $newNumber = '00001';
+        }
+
+        return $year . '-' . $newNumber;
     }
 
     // Announcement Management

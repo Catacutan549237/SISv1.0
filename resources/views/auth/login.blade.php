@@ -90,10 +90,6 @@
 
             <button type="submit" class="btn btn-primary">Sign In</button>
         </form>
-
-        <div class="form-footer">
-            <p>Don't have an account? <a href="{{ route('register') }}">Register here</a></p>
-        </div>
     </div>
 </div>
 @endsection
